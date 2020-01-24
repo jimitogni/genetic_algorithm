@@ -18,11 +18,12 @@ char_left = pygame.image.load('bonecol.png')
 char_right = pygame.image.load('boneco.png')
 char = pygame.image.load('boneco.png')
 
-win = pygame.display.set_mode((900, 600))
+win = pygame.display.set_mode((900, 800))
 pygame.display.set_caption("Darwin Algoritimo Evolutivo")
 
 score = 0
 
+#classe do darwin
 class player(object):
     def __init__(self, x, y, width, height):
         self.x = x
@@ -35,7 +36,7 @@ class player(object):
         self.left = False
         self.right = False
         self.walk_count = 0
-        self.box = (self.x + 10, self.y, 100, 150)
+        self.box = (self.x, self.y, 100, 150)#caixa em volta
 
     def draw(self, win):
         if self.walk_count + 1 >= 27:
@@ -49,10 +50,11 @@ class player(object):
             self.walk_count += 1
         else:
             win.blit(char, (self.x, self.y))
-        self.box = (self.x + 10, self.y, 100, 150)
-        pygame.draw.rect(win, (255,0,0), self.box, 2)
 
+        self.box = (self.x + 10, self.y, 100, 150)#caixa em volta
+        pygame.draw.rect(win, (255,0,0), self.box, 2)#caixa em volta
 
+#obistaculos
 class enemy(object):
     walk_left = [pygame.image.load('gato.png'), pygame.image.load('dog.png'), pygame.image.load('gir.png'), pygame.image.load('rato.png')]
 
@@ -64,8 +66,8 @@ class enemy(object):
         self.path = [self.x, self.y]
         self.end = end
         self.walk_count = 0
-        self.vel = 10
-        self.box = (self.x, self.y, 80, 100)
+        self.vel = 7
+        self.box = (self.x, self.y, 10, 50)#caixa em volta
 
     def draw(self, win):
         self.move()
@@ -78,8 +80,9 @@ class enemy(object):
         else:
             win.blit(self.walk_left[self.walk_count//3], (self.x, self.y))
             self.walk_count += 1
-        self.box = (self.x, self.y, 80, 100)
-        pygame.draw.rect(win, (255,0,0), self.box, 2)
+
+        self.box = (self.x, self.y, 65, 84)#caixa em volta
+        pygame.draw.rect(win, (255,0,0), self.box, 2)#caixa em volta
 
 
     def move(self):
@@ -98,22 +101,28 @@ class enemy(object):
         #        self.vel = self.vel * -1
         #        self.walk_count = 0
 
+    def stop(self):
+        self.x = 500
+        self.vel = 0
 
 
 def redraw_game_window():
     win.blit(bg, (0, 0))  # back ground image
     text = font.render('Pontuacao: ' + str(score), 1, (0,0,0))
     win.blit(text, (10, 30))
+
     man.draw(win)
     gobling.draw(win)
     pygame.display.update()
 
+#man.box[0] == gobling.box[0] and man.box[1] < gobling.box[1] + gobling.box[3]:
 
 # main looping
-man = player(10, 350, 64, 64)
-gobling = enemy(900, 390, 64, 64, 300)
+man = player(10, 350, 64, 64) #(x, y, largura, altura)
+gobling = enemy(900, 400, 64, 64, 300) #(x, y, largura, altura, end)
 run = True
-font = pygame.font.SysFont('comicsans', 50, True)
+font = pygame.font.SysFont('comicsans', 30, True)
+font2 = pygame.font.SysFont('Arial', 21)
 
 while run:
 
@@ -124,6 +133,58 @@ while run:
             run = False
 
     keys = pygame.key.get_pressed()
+
+    #debug
+    dbg1 = font2.render('Man X: ' + str(man.box[0]), 1, (255, 255, 0))
+    win.blit(dbg1, (10, 610))
+
+    dbg2 = font2.render('Man Y: ' + str(man.box[1]), 1, (255, 255, 0))
+    win.blit(dbg2, (10, 630))
+
+    dbg3 = font2.render('gobling X: ' + str(gobling.box[0]), 1, (255, 255, 0))
+    win.blit(dbg3, (10, 650))
+
+    dbg4 = font2.render('gobling Y: ' + str(gobling.box[1]), 1, (255, 255, 0))
+    win.blit(dbg4, (10, 670))
+
+    print("-"*20)
+    print(f"man X: {man.box[0]} - Y : {man.box[1]}")
+    print(f"gobling X: {gobling.box[0]} - Y : {gobling.box[1]}")
+    print("-" * 20)
+
+    #colisao
+    #for count in range(1):
+    # se darwin.X for >= ao gobbling.X E darwin.Y =< gobling.Y + diferença de alturas
+    # se darwin.X for >= ao gobbling.X E Ydarwin tem que ser > que Yvilao + alturada do box do vilao
+    # man box self.box = (self.x, self.y, 100, 150)
+    # gobling box self.box = (self.x, self.y, 65, 84)#caixa em volta
+    if man.box[0] == gobling.box[0]: #and man.box[1] < gobling.box[1] + gobling.box[3]:
+        man.vel = 0
+        gobling.vel = 0
+        print("------------------------")
+        print("MOOOOREEEEEUUUUU")
+        print('COLISÃO - PARAMETROS:')
+        print('man.y - ', man.y)
+        print('man.x - ', man.x)
+        print('gobling x + 65 posição = ', gobling.box[0] + gobling.box[2])
+        print('gobling y + 65 altura = ', gobling.box[1] + gobling.box[2])
+        print("------------------------")
+        gobling.stop()
+        clock.tick(1)
+
+        #print('man.box[0] - ', man.box[0])
+        #print('gobling.box[0] - ', gobling.box[0])
+        #print()
+        #print('man.box[1] -', man.box[1])
+        #print('gobling.box[1] -', gobling.box[1])
+        #print('man.box[3] -', man.box[3])
+        #print('gobling.box[3] -', gobling.box[3])
+        print('\n')
+    else:
+        #print("------------------------")
+        #print("PULOUUU")
+        score += 0.001
+    #count += 1
 
     if keys[pygame.K_LEFT] and man.x > man.vel:
         man.x -= man.vel
@@ -149,24 +210,28 @@ while run:
             neg = 1
             if man.jump_count < 0:
                 neg = -1
-            man.y -= (man.jump_count ** 2) * 0.5 * neg
+            man.y -= (man.jump_count ** 2) * 0.8 * neg
             man.jump_count -= 1
         else:
             man.is_jump = False
             man.jump_count = 10
 
     # colision
-    if man.box[2] >= gobling.box[3]+10:
-        print('parametros PULANDO')
-        print(man.box[2])
-        print(gobling.box[3])
-        print('\n')
-        score += 1
-    elif man.box[2] == gobling.box[3]:
-        print('parametros dos objetos SEM PULAR')
-        print(man.box[2])
-        print(gobling.box[3])
-        print('\n')
+    #if man.x >= gobling.box[3]+10:
+    #    print('parametros PULANDO')
+    #    print(man.box[2])
+    #    print(gobling.box[3])
+    #    print('\n')
+    #    score += 1
+    #if man.x == gobling.box[3]:
+    #    print('COLISÃO - PARAMETROS:')
+    #    print('man.box[2] - ', man.box[2])
+    #    print('gobling.box[3] - ', gobling.box[2])
+    #    print('man.box[1] -', man.box[1])
+    #    print('gobling.box[1] -', gobling.box[1])
+    #    print('man.box[3] -', man.box[3])
+    #    print('gobling.box[3] -', gobling.box[3])
+    #    print('\n')
 
     redraw_game_window()
 

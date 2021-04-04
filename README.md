@@ -1,0 +1,2 @@
+# alggen
+Genetic algorithms study

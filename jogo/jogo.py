@@ -153,85 +153,85 @@ while run:
     print("-" * 20)
 
     #colisao
-    #for count in range(1):
+    for count in range(1):
     # se darwin.X for >= ao gobbling.X E darwin.Y =< gobling.Y + diferença de alturas
     # se darwin.X for >= ao gobbling.X E Ydarwin tem que ser > que Yvilao + alturada do box do vilao
     # man box self.box = (self.x, self.y, 100, 150)
     # gobling box self.box = (self.x, self.y, 65, 84)#caixa em volta
-    if man.box[0] == gobling.box[0]: #and man.box[1] < gobling.box[1] + gobling.box[3]:
-        man.vel = 0
-        gobling.vel = 0
-        print("------------------------")
-        print("MOOOOREEEEEUUUUU")
-        print('COLISÃO - PARAMETROS:')
-        print('man.y - ', man.y)
-        print('man.x - ', man.x)
-        print('gobling x + 65 posição = ', gobling.box[0] + gobling.box[2])
-        print('gobling y + 65 altura = ', gobling.box[1] + gobling.box[2])
-        print("------------------------")
-        gobling.stop()
-        clock.tick(1)
+        if man.box[0] == gobling.box[0]: #and man.box[1] < gobling.box[1] + gobling.box[3]:
+            man.vel = 0
+            gobling.vel = 0
+            print("------------------------")
+            print("MOOOOREEEEEUUUUU")
+            print('COLISÃO - PARAMETROS:')
+            print('man.y - ', man.y)
+            print('man.x - ', man.x)
+            print('gobling x + 65 posição = ', gobling.box[0] + gobling.box[2])
+            print('gobling y + 65 altura = ', gobling.box[1] + gobling.box[2])
+            print("------------------------")
+            gobling.stop()
+            clock.tick(1)
 
-        #print('man.box[0] - ', man.box[0])
-        #print('gobling.box[0] - ', gobling.box[0])
-        #print()
-        #print('man.box[1] -', man.box[1])
-        #print('gobling.box[1] -', gobling.box[1])
-        #print('man.box[3] -', man.box[3])
-        #print('gobling.box[3] -', gobling.box[3])
-        print('\n')
-    else:
-        #print("------------------------")
-        #print("PULOUUU")
-        score += 0.001
-    #count += 1
+            #print('man.box[0] - ', man.box[0])
+            #print('gobling.box[0] - ', gobling.box[0])
+            #print()
+            #print('man.box[1] -', man.box[1])
+            #print('gobling.box[1] -', gobling.box[1])
+            #print('man.box[3] -', man.box[3])
+            #print('gobling.box[3] -', gobling.box[3])
+            print('\n')
+        else:
+            #print("------------------------")
+            #print("PULOUUU")
+            score += 0.001
+        #count += 1
 
-    if keys[pygame.K_LEFT] and man.x > man.vel:
-        man.x -= man.vel
-        man.left = True
-        man.right = False
-    elif keys[pygame.K_RIGHT] and man.x < 900 - man.width - man.vel:
-        man.x += man.vel
-        man.left = False
-        man.right = True
-    else:
-        man.right = False
-        man.left = False
-        man.walk_count = 0
-
-    if not man.is_jump:
-        if keys[pygame.K_SPACE] or keys[pygame.K_UP]:
-            man.is_jump = True
+        if keys[pygame.K_LEFT] and man.x > man.vel:
+            man.x -= man.vel
+            man.left = True
+            man.right = False
+        elif keys[pygame.K_RIGHT] and man.x < 900 - man.width - man.vel:
+            man.x += man.vel
+            man.left = False
+            man.right = True
+        else:
             man.right = False
             man.left = False
             man.walk_count = 0
-    else:
-        if man.jump_count >= -10:
-            neg = 1
-            if man.jump_count < 0:
-                neg = -1
-            man.y -= (man.jump_count ** 2) * 0.8 * neg
-            man.jump_count -= 1
-        else:
-            man.is_jump = False
-            man.jump_count = 10
 
-    # colision
-    #if man.x >= gobling.box[3]+10:
-    #    print('parametros PULANDO')
-    #    print(man.box[2])
-    #    print(gobling.box[3])
-    #    print('\n')
-    #    score += 1
-    #if man.x == gobling.box[3]:
-    #    print('COLISÃO - PARAMETROS:')
-    #    print('man.box[2] - ', man.box[2])
-    #    print('gobling.box[3] - ', gobling.box[2])
-    #    print('man.box[1] -', man.box[1])
-    #    print('gobling.box[1] -', gobling.box[1])
-    #    print('man.box[3] -', man.box[3])
-    #    print('gobling.box[3] -', gobling.box[3])
-    #    print('\n')
+        if not man.is_jump:
+            if keys[pygame.K_SPACE] or keys[pygame.K_UP]:
+                man.is_jump = True
+                man.right = False
+                man.left = False
+                man.walk_count = 0
+        else:
+            if man.jump_count >= -10:
+                neg = 1
+                if man.jump_count < 0:
+                    neg = -1
+                man.y -= (man.jump_count ** 2) * 0.8 * neg
+                man.jump_count -= 1
+            else:
+                man.is_jump = False
+                man.jump_count = 10
+
+        # colision
+        if man.x >= gobling.box[3]+10:
+            print('parametros PULANDO')
+            print(man.box[2])
+            print(gobling.box[3])
+            print('\n')
+            score += 1
+        if man.x == gobling.box[3]:
+            print('COLISÃO - PARAMETROS:')
+            print('man.box[2] - ', man.box[2])
+            print('gobling.box[3] - ', gobling.box[2])
+            print('man.box[1] -', man.box[1])
+            print('gobling.box[1] -', gobling.box[1])
+            print('man.box[3] -', man.box[3])
+            print('gobling.box[3] -', gobling.box[3])
+            print('\n')
 
     redraw_game_window()
 

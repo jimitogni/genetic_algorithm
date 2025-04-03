@@ -9,12 +9,6 @@ import sys
 pygame.init()
 clock = pygame.time.Clock()
 
-# images
-bg = pygame.image.load('fundo.png')
-char_left = pygame.image.load('bonecol.png')
-char_right = pygame.image.load('boneco.png')
-char = pygame.image.load('boneco.png')
-
 win = pygame.display.set_mode((1200, 800))
 pygame.display.set_caption("Darwin Algoritimo Evolutivo")
 
@@ -169,7 +163,7 @@ class player:
             win.blit(char_right, (self.x, self.y))
             self.walk_count += 1
         else:
-            win.blit(char, (self.x, self.y))
+            win.blit(chr, (self.x, self.y))
 
         self.box = (self.x + 10, self.y, 100, 150)
         pygame.draw.rect(win, (255, 0, 0), self.box, 2)
@@ -208,6 +202,20 @@ def draw_network(nn, inputs, hidden, win):
 # player, enemy, draw_network, etc.
 # ... (unchanged)
 
+def draw_background(surface):
+    # Sky
+    surface.fill((255, 255, 255))
+
+    # Floor
+    pygame.draw.rect(surface, (180, 180, 180), (0, 700, 1200, 100))
+
+    # Clouds (simple ellipses)
+    pygame.draw.ellipse(surface, (230, 230, 230), (200, 100, 120, 60))
+    pygame.draw.ellipse(surface, (230, 230, 230), (210, 80, 140, 80))
+    pygame.draw.ellipse(surface, (230, 230, 230), (900, 50, 150, 70))
+    pygame.draw.ellipse(surface, (230, 230, 230), (880, 70, 130, 60))
+
+
 def draw_fitness_plot(surface, best_history, avg_history):
     fig = pylab.figure(figsize=[4, 2], dpi=100)
     ax = fig.gca()
@@ -227,7 +235,7 @@ def draw_fitness_plot(surface, best_history, avg_history):
     pylab.close(fig)
 
 def redraw_game_window(agents, obstacle, generation):
-    win.blit(bg, (0, 0))
+    draw_background(win)
     text = font.render(f'Generation: {generation}', 1, (0, 0, 0))
     win.blit(text, (10, 10))
     alive = sum(agent.alive for agent in agents)
@@ -274,6 +282,7 @@ def mutate(genome):
         else:
             new_genome.append(gene)
     return new_genome
+
 def increase_difficulty(generation):
     speed = min(7 + generation // 2, 20)
     enemies = [enemy(1200 + i * randint(200, 400), 400, 64, 64, 300) for i in range(randint(1, 3))]

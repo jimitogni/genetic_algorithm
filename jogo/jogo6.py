@@ -241,34 +241,19 @@ def redraw_game_window(agents, obstacle, generation, fps, best_score, epoch_best
     win.blit(text3, (10, 120))
 
     for agent in agents:
-        if score_timer % 120 == 0 and agent.alive:
-            agent.fitness += 5
-        if agent.fitness > epoch_best_score:
-            epoch_best_score = agent.fitness
-        for g in enemies:
-            agent.update(g)
-            agent.check_collision(g)
-        if agent.alive:
-            all_dead = False
+        agent.draw(win)
+    obstacle.draw(win)
 
-    redraw_game_window(agents, enemies[0], generation, fps, best_score, epoch_best_score)
+    alive_agents = [a for a in agents if a.alive]
+    if alive_agents:
+        best = max(alive_agents, key=lambda a: a.fitness)
+        if best.last_inputs is not None and best.last_hidden is not None:
+            draw_network(best.brain, best.last_inputs, best.last_hidden, win)
 
-    if all_dead:
-        best_agent = max(agents, key=lambda a: a.fitness)
-        if best_agent.fitness > best_score:
-            best_score = best_agent.fitness
-        generation += 1
-        agents = evolve_population(agents)
-        fitness_plot_surface = draw_fitness_plot(best_fitness_history, avg_fitness_history)
-        for i, agent in enumerate(agents):
-            agent.player.y = 550  # reset y position to the floor
-        enemies = increase_difficulty(generation)
-        score_timer = 0
-        epoch_best_score = 0
-epoch_best_score = 0
 
-pygame.quit()
-
+    text6 = font.render(f'FPS: {int(fps)}', 1, (0, 0, 0))
+    win.blit(text6, (10, 210))
+    pygame.display.update()
 
 def evolve_population(old_agents):
     sorted_agents = sorted(old_agents, key=lambda a: a.fitness, reverse=True)
@@ -308,12 +293,16 @@ enemies = increase_difficulty(generation)
 run = True
 
 frame_counter = 0
+score_timer = 0
+epoch_best_score = 0
+best_score = 0
 speed_level = 9
 
 while run:
     fps = clock.get_fps()
     clock.tick(40)
     frame_counter += 1
+    score_timer += 1
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -327,15 +316,22 @@ while run:
 
     all_dead = True
     for agent in agents:
+        if score_timer % 120 == 0 and agent.alive:
+            agent.fitness += 5
+        if agent.fitness > epoch_best_score:
+            epoch_best_score = agent.fitness
         for g in enemies:
             agent.update(g)
             agent.check_collision(g)
         if agent.alive:
             all_dead = False
 
-    redraw_game_window(agents, enemies[0], generation, fps)
+    redraw_game_window(agents, enemies[0], generation, fps, best_score, epoch_best_score)
 
     if all_dead:
+        best_agent = max(agents, key=lambda a: a.fitness)
+        if best_agent.fitness > best_score:
+            best_score = best_agent.fitness
         generation += 1
         agents = evolve_population(agents)
         fitness_plot_surface = draw_fitness_plot(best_fitness_history, avg_fitness_history)
@@ -344,4 +340,5 @@ while run:
         enemies = increase_difficulty(generation)
 
 pygame.quit()
+
 

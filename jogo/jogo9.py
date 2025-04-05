@@ -16,7 +16,7 @@ font = pygame.font.SysFont('comicsans', 30, True)
 font2 = pygame.font.SysFont('Arial', 21)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 50
+POPULATION_SIZE = 20
 MUTATION_RATE = 0.1
 
 # Track fitness history for plotting
@@ -60,9 +60,10 @@ class enemy:
 # Flying enemy class
 class FlyingEnemy(enemy):
     def __init__(self, x, width=40, height=40, speed=9):
-        super().__init__(x, y=480, width=width, height=height, speed=speed)
-        self.color = (100, 100, 255)  # bluish to differentiate
-    def __init__(self, x, y, width=40, height=60, end=300, speed=9):
+        y = 480
+        end = 300
+        super().__init__(x, y=y, width=width, height=height, end=end, speed=speed)
+        self.color = (100, 100, 255)  # bluish to differentiate  # bluish to differentiate
         self.active = True
         self.x = x
         self.y = y
@@ -129,7 +130,7 @@ class NeuralNetwork:
 class DinoAgent:
     def __init__(self, x, y, width, height, genome=None):
         self.player = player(x, y, width, height)
-        self.brain = NeuralNetwork(3, 6, 1, genome)
+        self.brain = NeuralNetwork(4, 6, 1, genome)
         self.fitness = 0
         self.alive = True
         self.last_inputs = None
@@ -143,7 +144,8 @@ class DinoAgent:
         height = obstacle.y
         speed = obstacle.vel
 
-        inputs = np.array([dist / 900, height / 800, speed / 10])
+        obstacle_type = 1 if isinstance(obstacle, FlyingEnemy) else 0
+        inputs = np.array([dist / 900, height / 800, speed / 10, obstacle_type])
         h, decision = self.brain.forward(inputs)
 
         self.last_inputs = inputs
@@ -153,15 +155,18 @@ class DinoAgent:
             self.player.is_jump = True
 
         if self.player.is_jump:
-            if self.player.jump_count >= -10:
+            if self.player.jump_count >= -20:
                 neg = 1
                 if self.player.jump_count < 0:
                     neg = -1
-                self.player.y -= (self.player.jump_count ** 2) * 0.8 * neg
+                self.player.y -= (self.player.jump_count ** 2) * 0.2 * neg
                 self.player.jump_count -= 1
             else:
                 self.player.is_jump = False
-                self.player.jump_count = 10
+                self.player.jump_count = 20
+            # Clamp to ground level
+            if self.player.y > 550:
+                self.player.y = 550
 
         self.fitness += 1
 
@@ -355,13 +360,22 @@ while run:
     # Spawn new enemy during gameplay
     if enemy_spawn_timer >= next_enemy_spawn_frame:
         base_x = 1200
-        new_enemy = enemy(base_x, 636, speed=speed_level, width=40, height=60)
+        if uniform(0, 1) < 0.3:
+            new_enemy = FlyingEnemy(base_x, width=40, height=40, speed=speed_level)
+            is_flying = True
+        else:
+            new_enemy = enemy(base_x, 636, speed=speed_level, width=40, height=60)
+            is_flying = False
         new_enemy.vel = speed_level
         enemies.append(new_enemy)
 
-        # 25% chance to spawn second close enemy
+        # 25% chance to spawn second close enemy only if there's enough space
         if uniform(0, 1) < 0.25:
-            second_enemy = enemy(base_x + randint(40, 80), 636, speed=speed_level, width=40, height=60)
+            spacing = randint(120, 200) if is_flying else randint(40, 80)
+            if uniform(0, 1) < 0.3:
+                second_enemy = FlyingEnemy(base_x + spacing, width=40, height=40, speed=speed_level)
+            else:
+                second_enemy = enemy(base_x + spacing, 636, speed=speed_level, width=40, height=60)
             second_enemy.vel = speed_level
             enemies.append(second_enemy)
 
@@ -369,8 +383,7 @@ while run:
         next_enemy_spawn_frame = randint(60, 150)
     clock.tick(60)
     frame_counter += 1
-    score_timer += 1
-
+    score_timer += 2
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -408,3 +421,4 @@ while run:
         enemies = increase_difficulty(generation)
 
 pygame.quit()
+

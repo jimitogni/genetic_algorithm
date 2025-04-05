@@ -16,7 +16,7 @@ font = pygame.font.SysFont('comicsans', 30, True)
 font2 = pygame.font.SysFont('Arial', 21)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 50
+POPULATION_SIZE = 20
 MUTATION_RATE = 0.1
 
 # Track fitness history for plotting
@@ -60,43 +60,11 @@ class enemy:
 # Flying enemy class
 class FlyingEnemy(enemy):
     def __init__(self, x, width=40, height=40, speed=9):
-        super().__init__(x, y=480, width=width, height=height, speed=speed)
-        self.color = (100, 100, 255)  # bluish to differentiate
-    def __init__(self, x, y, width=40, height=60, end=300, speed=9):
-        self.active = True
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.path = [self.x, self.y]
-        self.end = end
-        self.walk_count = 0
-        self.base_speed = speed
-        self.vel = speed
-        self.box = (self.x, self.y, 10, 50)
-        self.color = choice(ENEMY_COLORS)
+        y = 480
+        end = 300
+        super().__init__(x, y=y, width=width, height=height, end=end, speed=speed)
+        self.color = (100, 100, 255)
 
-    def draw(self, win):
-        self.move()
-        pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.height))
-        self.box = (self.x, self.y, self.width, self.height)
-        pygame.draw.rect(win, (255, 0, 0), self.box, 2)
-
-    def move(self):
-        self.vel = self.base_speed
-        self.x -= self.vel
-        if self.x + self.width < 0:
-            self.active = False
-
-    def stop(self):
-        self.x = 500
-        self.vel = 0
-
-# Neural Network class
-# ... (unchanged)
-# DinoAgent class
-
-# Neural Network class
 class NeuralNetwork:
     def __init__(self, input_size, hidden_size, output_size, genome=None):
         self.input_size = input_size
@@ -125,11 +93,10 @@ class NeuralNetwork:
         out = np.dot(h, self.w2)
         return h, out
 
-# Dino agent with brain
 class DinoAgent:
     def __init__(self, x, y, width, height, genome=None):
         self.player = player(x, y, width, height)
-        self.brain = NeuralNetwork(3, 6, 1, genome)
+        self.brain = NeuralNetwork(4, 6, 1, genome)
         self.fitness = 0
         self.alive = True
         self.last_inputs = None
@@ -143,7 +110,8 @@ class DinoAgent:
         height = obstacle.y
         speed = obstacle.vel
 
-        inputs = np.array([dist / 900, height / 800, speed / 10])
+        obstacle_type = 1 if isinstance(obstacle, FlyingEnemy) else 0
+        inputs = np.array([dist / 900, height / 800, speed / 10, obstacle_type])
         h, decision = self.brain.forward(inputs)
 
         self.last_inputs = inputs
@@ -151,17 +119,16 @@ class DinoAgent:
 
         if decision[0] > 0 and not self.player.is_jump:
             self.player.is_jump = True
+            self.player.vertical_velocity = -12  # Fixed velocity for jump
 
         if self.player.is_jump:
-            if self.player.jump_count >= -10:
-                neg = 1
-                if self.player.jump_count < 0:
-                    neg = -1
-                self.player.y -= (self.player.jump_count ** 2) * 0.8 * neg
-                self.player.jump_count -= 1
-            else:
+            self.player.vertical_velocity += self.player.gravity
+            self.player.y += self.player.vertical_velocity
+
+            if self.player.y >= 550:
+                self.player.y = 550
                 self.player.is_jump = False
-                self.player.jump_count = 10
+                self.player.vertical_velocity = 0
 
         self.fitness += 1
 
@@ -174,7 +141,6 @@ class DinoAgent:
         if self.alive:
             self.player.draw(win)
 
-# Original player and enemy classes
 class player:
     def __init__(self, x, y, width=40, height=60):
         self.x = x
@@ -183,10 +149,9 @@ class player:
         self.height = height
         self.vel = 5
         self.is_jump = False
-        self.jump_count = 10 
-        self.left = False
-        self.right = False
-        self.walk_count = 0
+        self.vertical_velocity = 0
+        self.jump_velocity = -12
+        self.gravity = 1
         self.char_img = pygame.image.load('boneco.png')
         self.box = (self.x, self.y, 100, 150)
 
@@ -287,7 +252,9 @@ def redraw_game_window(agents, obstacle, generation, fps, best_score, epoch_best
         if best.last_inputs is not None and best.last_hidden is not None:
             draw_network(best.brain, best.last_inputs, best.last_hidden, win)
 
-
+    win.blit(font.render(f'Gravity: {agents[0].gravity:.2f}', 1, (0, 0, 0)), (10, 210))
+    win.blit(font.render(f'Jump Velo: {agents[0].jump_velocity:.2f}', 1, (0, 0, 0)), (10, 240))
+    win.blit(font.render(f'Vertical Velo: {agents[0].vertical_velocity:.2f}', 1, (0, 0, 0)), (10, 270))
     text6 = font.render(f'FPS: {int(fps)}', 1, (0, 0, 0))
     win.blit(text6, (10, 110))
     pygame.display.update()
@@ -355,13 +322,22 @@ while run:
     # Spawn new enemy during gameplay
     if enemy_spawn_timer >= next_enemy_spawn_frame:
         base_x = 1200
-        new_enemy = enemy(base_x, 636, speed=speed_level, width=40, height=60)
+        if uniform(0, 1) < 0.3:
+            new_enemy = FlyingEnemy(base_x, width=40, height=40, speed=speed_level)
+            is_flying = True
+        else:
+            new_enemy = enemy(base_x, 636, speed=speed_level, width=40, height=60)
+            is_flying = False
         new_enemy.vel = speed_level
         enemies.append(new_enemy)
 
-        # 25% chance to spawn second close enemy
+        # 25% chance to spawn second close enemy only if there's enough space
         if uniform(0, 1) < 0.25:
-            second_enemy = enemy(base_x + randint(40, 80), 636, speed=speed_level, width=40, height=60)
+            spacing = randint(120, 200) if is_flying else randint(40, 80)
+            if uniform(0, 1) < 0.3:
+                second_enemy = FlyingEnemy(base_x + spacing, width=40, height=40, speed=speed_level)
+            else:
+                second_enemy = enemy(base_x + spacing, 636, speed=speed_level, width=40, height=60)
             second_enemy.vel = speed_level
             enemies.append(second_enemy)
 
@@ -369,8 +345,7 @@ while run:
         next_enemy_spawn_frame = randint(60, 150)
     clock.tick(60)
     frame_counter += 1
-    score_timer += 1
-
+    score_timer += 2
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False

@@ -27,7 +27,8 @@ avg_fitness_history = []
 ENEMY_COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
 
 class enemy:
-    def __init__(self, x, y, width, height, end):
+    def __init__(self, x, y, width=40, height=60, end=300, speed=9):
+        self.active = True
         self.x = x
         self.y = y
         self.width = width
@@ -35,7 +36,7 @@ class enemy:
         self.path = [self.x, self.y]
         self.end = end
         self.walk_count = 0
-        self.vel = 9
+        self.vel = speed
         self.box = (self.x, self.y, 10, 50)
         self.color = choice(ENEMY_COLORS)
 
@@ -46,10 +47,9 @@ class enemy:
         pygame.draw.rect(win, (255, 0, 0), self.box, 2)
 
     def move(self):
-        if self.x > -10:
-            self.x -= self.vel
-        else:
-            self.x = 1200
+        self.x -= self.vel
+        if self.x + self.width < 0:
+            self.active = False
 
     def stop(self):
         self.x = 500
@@ -139,7 +139,7 @@ class DinoAgent:
 
 # Original player and enemy classes
 class player:
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width=40, height=60):
         self.x = x
         self.y = y
         self.width = width
@@ -233,7 +233,7 @@ def redraw_game_window(agents, obstacle, generation, fps, best_score, epoch_best
     alive = sum(agent.alive for agent in agents)
     text2 = font.render(f'Alive: {alive}', 1, (0, 0, 0))
     win.blit(text2, (10, 30))
-    text3 = font.render(f'Speed: {obstacle.vel}', 1, (0, 0, 0))
+    text3 = font.render(f'Speed: {speed_level}', 1, (0, 0, 0))
     text4 = font.render(f'Best Score (All Time): {best_score}', 1, (0, 0, 0))
     text5 = font.render(f'Best Score (This Epoch): {epoch_best_score}', 1, (0, 0, 0))
     win.blit(text4, (10, 50))
@@ -242,7 +242,11 @@ def redraw_game_window(agents, obstacle, generation, fps, best_score, epoch_best
 
     for agent in agents:
         agent.draw(win)
-    obstacle.draw(win)
+    for obs in enemies[:]:
+        if obs.active:
+            obs.draw(win)
+        else:
+            enemies.remove(obs)
 
     alive_agents = [a for a in agents if a.alive]
     if alive_agents:
@@ -281,7 +285,18 @@ def mutate(genome):
 
 def increase_difficulty(generation):
     speed = 9  # Start with base speed
-    enemies = [enemy(1200 + i * randint(200, 400), 636, 64, 64, 300) for i in range(randint(1, 3))]
+    enemies = []
+    x_pos = 1200
+    for _ in range(randint(5, 7)):
+        gap = randint(200, 400)
+        x_pos += gap
+        enemy1 = enemy(x_pos, 636, speed=speed_level)
+        enemies.append(enemy1)
+        # 25% chance to add a second enemy very close
+        if uniform(0, 1) < 0.25:
+            x_pos += randint(40, 80)
+            enemy2 = enemy(x_pos, 636, speed=speed_level)
+            enemies.append(enemy2)
     for e in enemies:
         e.vel = speed
     return enemies
@@ -289,7 +304,9 @@ def increase_difficulty(generation):
 # Initial population
 generation = 1
 agents = [DinoAgent(10 + i * 5, 550, 64, 64) for i in range(POPULATION_SIZE)]  # on the ground
-enemies = increase_difficulty(generation)
+enemies = []
+enemy_spawn_timer = 0
+next_enemy_spawn_frame = randint(60, 150)
 run = True
 
 frame_counter = 0
@@ -300,6 +317,23 @@ speed_level = 9
 
 while run:
     fps = clock.get_fps()
+    enemy_spawn_timer += 1
+
+    # Spawn new enemy during gameplay
+    if enemy_spawn_timer >= next_enemy_spawn_frame:
+        base_x = 1200
+        new_enemy = enemy(base_x, 636, speed=speed_level, width=40, height=60)
+        new_enemy.vel = speed_level
+        enemies.append(new_enemy)
+
+        # 25% chance to spawn second close enemy
+        if uniform(0, 1) < 0.25:
+            second_enemy = enemy(base_x + randint(40, 80), 636, speed=speed_level, width=40, height=60)
+            second_enemy.vel = speed_level
+            enemies.append(second_enemy)
+
+        enemy_spawn_timer = 0
+        next_enemy_spawn_frame = randint(60, 150)
     clock.tick(40)
     frame_counter += 1
     score_timer += 1
@@ -326,7 +360,7 @@ while run:
         if agent.alive:
             all_dead = False
 
-    redraw_game_window(agents, enemies[0], generation, fps, best_score, epoch_best_score)
+    redraw_game_window(agents, enemies, generation, fps, best_score, epoch_best_score)
 
     if all_dead:
         best_agent = max(agents, key=lambda a: a.fitness)
@@ -340,5 +374,3 @@ while run:
         enemies = increase_difficulty(generation)
 
 pygame.quit()
-
-

@@ -230,42 +230,60 @@ def draw_fitness_plot():
     plt.close(fig)
 
 def draw_network(nn, inputs, hidden, win):
-    start_x = 1000
-    start_y = 100
+    start_x = 980
+    start_y = 50
     spacing_y = 40
+
+    # Get layer sizes
+    num_inputs = nn.input_size
+    num_hidden = nn.hidden_size
+    num_outputs = nn.output_size
+
+    # Calculate center offset for aligning layers
+    hidden_total_height = spacing_y * (num_hidden - 1)
+    input_offset = (hidden_total_height - spacing_y * (num_inputs - 1)) // 2
+    output_offset = (hidden_total_height - spacing_y * (num_outputs - 1)) // 2
+
+    # Input labels (must match your NN input meaning)
+    input_labels = ["Dist", "Height", "Speed", "Type"]
+    output_labels = ["Jump", "Duck"]
 
     # Draw input neurons
     for i, val in enumerate(inputs):
+        y_pos = start_y + input_offset + i * spacing_y
         color = (255, 165, 0) if val > 0 else (100, 100, 100)
-        pygame.draw.circle(win, color, (start_x, start_y + i * spacing_y), 10)
+        pygame.draw.circle(win, color, (start_x, y_pos), 10)
+        win.blit(font2.render(input_labels[i], True, (0, 0, 0)), (start_x - 70, y_pos - 10))
 
     # Draw hidden neurons
     for j, val in enumerate(hidden):
+        y_pos = start_y + j * spacing_y
         color = (255, 0, 0) if val > 0 else (0, 0, 0)
-        pygame.draw.circle(win, color, (start_x + 60, start_y + j * spacing_y), 10)
+        pygame.draw.circle(win, color, (start_x + 60, y_pos), 10)
 
-    # Draw connections from input to hidden
-    for i in range(nn.input_size):
-        for j in range(nn.hidden_size):
+    # Draw input -> hidden connections
+    for i in range(num_inputs):
+        y_input = start_y + input_offset + i * spacing_y
+        for j in range(num_hidden):
+            y_hidden = start_y + j * spacing_y
             color = (255, 0, 0) if nn.w1[i][j] > 0 else (0, 0, 255)
             pygame.draw.line(win, color,
-                             (start_x, start_y + i * spacing_y),
-                             (start_x + 60, start_y + j * spacing_y), 1)
+                             (start_x, y_input),
+                             (start_x + 60, y_hidden), 1)
 
-    # Output neurons: two (jump and duck)
-    output_labels = ["Jump", "Duck"]
-    output_spacing = 30  # spacing between output neurons
+    # Draw output neurons
+    for k in range(num_outputs):
+        y_pos = start_y + output_offset + k * spacing_y
+        pygame.draw.circle(win, (0, 255, 0), (start_x + 120, y_pos), 10)
+        win.blit(font2.render(output_labels[k], True, (0, 0, 0)), (start_x + 135, y_pos - 10))
 
-    for k in range(2):  # nn.output_size is 2
-        y_offset = start_y + (k + 2) * spacing_y  # position output neurons lower
-        pygame.draw.circle(win, (0, 255, 0), (start_x + 120, y_offset), 10)
-        win.blit(font2.render(output_labels[k], True, (0, 0, 0)), (start_x + 135, y_offset - 10))
-
-        for j in range(nn.hidden_size):
+        # Draw hidden -> output connections
+        for j in range(num_hidden):
+            y_hidden = start_y + j * spacing_y
             color = (255, 0, 0) if nn.w2[j][k] > 0 else (0, 0, 255)
             pygame.draw.line(win, color,
-                             (start_x + 60, start_y + j * spacing_y),
-                             (start_x + 120, y_offset), 1)
+                             (start_x + 60, y_hidden),
+                             (start_x + 120, y_pos), 1)
 
 
 def evolve_population(old_agents):

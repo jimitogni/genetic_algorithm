@@ -107,7 +107,7 @@ class NeuralNetwork:
 class DinoAgent:
     def __init__(self, x, y, width, height, genome=None):
         self.player = player(x, y, width, height)
-        self.brain = NeuralNetwork(4, 6, 1, genome)
+        self.brain = NeuralNetwork(4, 6, 2, genome)
         self.fitness = 0
         self.alive = True
         self.last_inputs = None
@@ -117,6 +117,7 @@ class DinoAgent:
         if not self.alive:
             return
 
+        # Inputs for the neural network
         dist = obstacle.x - self.player.x
         height = obstacle.y
         speed = obstacle.vel
@@ -128,10 +129,19 @@ class DinoAgent:
         self.last_inputs = inputs
         self.last_hidden = h
 
-        if decision[0] > 0 and not self.player.is_jump:
+        # UNPACK OUTPUTS
+        jump_decision = decision[0]
+        duck_decision = decision[1]
+
+        # Handle jump
+        if jump_decision > 0 and not self.player.is_jump:
             self.player.is_jump = True
             self.player.vertical_velocity = self.player.jump_velocity
 
+        # Handle ducking
+        self.player.is_ducking = duck_decision > 0 and not self.player.is_jump
+
+        # Apply gravity and vertical movement
         if self.player.is_jump:
             self.player.vertical_velocity += self.player.gravity
             self.player.y += self.player.vertical_velocity
@@ -161,6 +171,7 @@ class player:
         self.height = height
         self.vel = 5
         self.is_jump = False
+        self.duck_img = pygame.image.load('boneco_duck.png')  # You’ll need to create or find a duck sprite
         self.vertical_velocity = 0
         self.jump_velocity = -15
         self.gravity = 0.5
@@ -171,11 +182,18 @@ class player:
         self.y = 550
         self.vertical_velocity = 0
         self.is_jump = False
+        self.is_ducking = False
 
     def draw(self, win):
-        win.blit(self.char_img, (self.x, self.y))
-        self.box = (self.x + 10, self.y, 100, 150)
+        if self.is_ducking:
+            win.blit(self.duck_img, (self.x, self.y + 40))  # Adjust position when ducking
+            self.box = (self.x + 10, self.y + 40, 100, 110)  # Shorter hitbox
+        else:
+            win.blit(self.char_img, (self.x, self.y))
+            self.box = (self.x + 10, self.y, 100, 150)
+
         pygame.draw.rect(win, (255, 0, 0), self.box, 2)
+
 
 def draw_background(surface):
     surface.fill((255, 255, 255))

@@ -38,7 +38,7 @@ def load_best_genome():
     return None
 
 class enemy:
-    def __init__(self, x, y, width=40, height=60, end=300, speed=5):
+    def __init__(self, x, y, width=20, height=40, end=300, speed=5):
         self.active = True
         self.x = x
         self.y = y
@@ -70,7 +70,7 @@ class enemy:
 
 # Flying enemy class
 class FlyingEnemy(enemy):
-    def __init__(self, x, width=40, height=60, speed=5):
+    def __init__(self, x, width=40, height=80, speed=5):
         y = 510 # Adjusted from 480 → now right at head level
         
         #optional
@@ -178,8 +178,8 @@ class player:
         self.is_ducking = False
         self.duck_img = pygame.image.load('boneco_duck.png')  # You’ll need to create or find a duck sprite
         self.vertical_velocity = 0
-        self.jump_velocity = -15
-        self.gravity = 0.3
+        self.jump_velocity = -20
+        self.gravity = 0.7
         self.char_img = pygame.image.load('boneco.png')
         self.box = (self.x, self.y, 100, 150)
 
@@ -393,33 +393,33 @@ while run:
         base_x = 1200
         is_flying = uniform(0, 1) < 0.3
         if is_flying:
-            new_enemy = FlyingEnemy(base_x, width=40, height=60, speed=speed_level)
+            new_enemy = FlyingEnemy(base_x, width=20, height=60, speed=speed_level)
         else:
-            new_enemy = enemy(base_x, 636, speed=speed_level, width=40, height=60)
+            new_enemy = enemy(base_x, 660, speed=speed_level, width=20, height=40)
         new_enemy.vel = speed_level
         enemies.append(new_enemy)
 
-        # 25% chance to spawn second close enemy
-        if uniform(0, 1) < 0.25:
-            # If both are same type, use normal spacing
-            if is_flying:
-                spacing = randint(200, 300)
-                second_enemy = FlyingEnemy(base_x + spacing, width=40, height=40, speed=speed_level)
-            else:
-                spacing = randint(40, 60)
-                second_enemy = enemy(base_x + spacing, 636, speed=speed_level, width=40, height=60)
+#        # 25% chance to spawn second close enemy
+#        if uniform(0, 1) < 0.25:
+#            # If both are same type, use normal spacing
+#            if is_flying:
+#                spacing = randint(200, 300)
+#                second_enemy = FlyingEnemy(base_x + spacing, width=40, height=40, speed=speed_level)
+#            else:
+#                spacing = randint(40, 60)
+#                second_enemy = enemy(base_x + spacing, 636, speed=speed_level, width=40, height=60)
+#
+#            # But if types would be different, use large spacing
+#            if uniform(0, 1) < 0.3:
+#                # Opposite type second enemy
+#               large_spacing = randint(300, 450)
+#               if is_flying:
+#                   second_enemy = enemy(base_x + large_spacing, 636, speed=speed_level, width=40, height=60)
+#              else:
+#                   second_enemy = FlyingEnemy(base_x + large_spacing, width=40, height=40, speed=speed_level)
 
-            # But if types would be different, use large spacing
-            if uniform(0, 1) < 0.3:
-                # Opposite type second enemy
-                large_spacing = randint(300, 450)
-                if is_flying:
-                    second_enemy = enemy(base_x + large_spacing, 636, speed=speed_level, width=40, height=60)
-                else:
-                    second_enemy = FlyingEnemy(base_x + large_spacing, width=40, height=40, speed=speed_level)
-
-            second_enemy.vel = speed_level
-            enemies.append(second_enemy)
+#            second_enemy.vel = speed_level
+#            enemies.append(second_enemy)
 
         enemy_spawn_timer = 0
         next_enemy_spawn_frame = randint(80, 150)

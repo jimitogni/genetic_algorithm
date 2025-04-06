@@ -16,7 +16,7 @@ font = pygame.font.SysFont('comicsans', 30, True)
 font2 = pygame.font.SysFont('Arial', 21)
 
 # Genetic Algorithm parameters
-POPULATION_SIZE = 20
+POPULATION_SIZE = 50
 MUTATION_RATE = 0.1
 
 # Track fitness history for plotting
@@ -25,6 +25,17 @@ avg_fitness_history = []
 
 # Enemy colors (geometric shapes)
 ENEMY_COLORS = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0)]
+
+# Genome persistence
+BEST_GENOME_FILE = "best_genome.npy"
+
+def save_best_genome(genome):
+    np.save(BEST_GENOME_FILE, genome)
+
+def load_best_genome():
+    if os.path.exists(BEST_GENOME_FILE):
+        return np.load(BEST_GENOME_FILE)
+    return None
 
 class enemy:
     def __init__(self, x, y, width=40, height=60, end=300, speed=9):
@@ -59,7 +70,7 @@ class enemy:
 
 # Flying enemy class
 class FlyingEnemy(enemy):
-    def __init__(self, x, width=40, height=40, speed=9):
+    def __init__(self, x, width=40, height=60, speed=9):
         y = 480
         end = 300
         super().__init__(x, y=y, width=width, height=height, end=end, speed=speed)
@@ -133,9 +144,10 @@ class DinoAgent:
         self.fitness += 1
 
     def check_collision(self, obstacle):
-        if self.player.x + 100 > obstacle.x and self.player.x < obstacle.x + obstacle.width:
-            if self.player.y + 150 > obstacle.y:
-                self.alive = False
+        dino_rect = pygame.Rect(self.player.box)
+        enemy_rect = pygame.Rect(obstacle.box)
+        if dino_rect.colliderect(enemy_rect):
+            self.alive = False
 
     def draw(self, win):
         if self.alive:
@@ -150,8 +162,8 @@ class player:
         self.vel = 5
         self.is_jump = False
         self.vertical_velocity = 0
-        self.jump_velocity = -20
-        self.gravity = 0.9
+        self.jump_velocity = -15
+        self.gravity = 0.5
         self.char_img = pygame.image.load('boneco.png')
         self.box = (self.x, self.y, 100, 150)
 
@@ -172,6 +184,27 @@ def draw_background(surface):
     pygame.draw.ellipse(surface, (230, 230, 230), (210, 80, 140, 80))
     pygame.draw.ellipse(surface, (230, 230, 230), (900, 50, 150, 70))
     pygame.draw.ellipse(surface, (230, 230, 230), (880, 70, 130, 60))
+
+# Add a surface plot function to show fitness evolution
+plot_surface = pygame.Surface((400, 350))
+def draw_fitness_plot():
+    global plot_surface
+    fig = plt.figure(figsize=[5, 3])
+    plt.plot(best_fitness_history[-40:], label="Best", color='blue')
+    plt.plot(avg_fitness_history[-40:], label="Average", color='orange')
+    plt.xlabel("Generation")
+    plt.ylabel("Fitness")
+    plt.legend()
+    plt.tight_layout()
+
+    canvas = agg.FigureCanvasAgg(fig)
+    canvas.draw()
+    renderer = canvas.get_renderer()
+    raw_data = renderer.buffer_rgba()
+    size = canvas.get_width_height()
+    surf = pygame.image.frombuffer(raw_data, size, "RGBA")
+    plot_surface = surf.copy()
+    plt.close(fig)
 
 def draw_network(nn, inputs, hidden, win):
     start_x = 1000
@@ -200,6 +233,8 @@ def evolve_population(old_agents):
     best_fitness_history.append(best)
     avg_fitness_history.append(avg)
     top_genomes = [a.brain.genome for a in sorted_agents[:5]]
+    save_best_genome(sorted_agents[0].brain.genome)
+    draw_fitness_plot()
     return [DinoAgent(10 + i * 5, 550, 64, 64, mutate(choice(top_genomes))) for i in range(POPULATION_SIZE)]
 
 def mutate(genome):
@@ -208,31 +243,36 @@ def mutate(genome):
 def redraw_game_window(agents, enemies, generation, fps, best_score, epoch_best_score):
     draw_background(win)
     alive = sum(agent.alive for agent in agents)
-    win.blit(font.render(f'Generation: {generation}', 1, (0, 0, 0)), (10, 60))
-    win.blit(font.render(f'Alive: {alive}', 1, (0, 0, 0)), (10, 80))
-    win.blit(font.render(f'FPS: {int(fps)}', 1, (0, 0, 0)), (10, 100))
-    win.blit(font.render(f'Best Score (All Time): {best_score}', 1, (0, 0, 0)), (10, 120))
-    win.blit(font.render(f'Best Score (This Epoch): {epoch_best_score}', 1, (0, 0, 0)), (10, 140))
-    win.blit(font.render(f'Speed: {speed_level}', 1, (0, 0, 0)), (10, 160))
+    win.blit(font.render(f'Generation: {generation}', 1, (0, 0, 0)), (10, 10))
+    win.blit(font.render(f'Alive: {alive}', 1, (0, 0, 0)), (10, 30))
+    win.blit(font.render(f'FPS: {int(fps)}', 1, (0, 0, 0)), (10, 50))
+    win.blit(font.render(f'Best Score (All Time): {best_score}', 1, (0, 0, 0)), (10, 70))
+    win.blit(font.render(f'Best Score (This Epoch): {epoch_best_score}', 1, (0, 0, 0)), (10, 90))
+    win.blit(font.render(f'Speed: {speed_level}', 1, (0, 0, 0)), (10, 110))
 
     if agents:
-        win.blit(font.render(f'Jump Velocity: {agents[0].player.jump_velocity}', 1, (0, 0, 0)), (400, 60))
-        win.blit(font.render(f'Gravity: {agents[0].player.gravity}', 1, (0, 0, 0)), (400, 80))
-        win.blit(font.render(f'Vertical Velocity: {int(agents[0].player.vertical_velocity)}', 1, (0, 0, 0)), (400, 100))
+        win.blit(font.render(f'Jump Velocity: {agents[0].player.jump_velocity}', 1, (0, 0, 0)), (10, 130))
+        win.blit(font.render(f'Gravity: {agents[0].player.gravity}', 1, (0, 0, 0)), (10, 150))
+        win.blit(font.render(f'Vertical Velocity: {int(agents[0].player.vertical_velocity)}', 1, (0, 0, 0)), (10, 170))
+
+    # Draw only best agent
+
+    best = max(agents, key=lambda a: a.fitness)
 
     for agent in agents:
-        agent.draw(win)
+        if agent.alive:
+            agent.draw(win)
+
     for obs in enemies[:]:
         if obs.active:
             obs.draw(win)
         else:
             enemies.remove(obs)
 
-    alive_agents = [a for a in agents if a.alive]
-    if alive_agents:
-        best = max(alive_agents, key=lambda a: a.fitness)
-        if best.last_inputs is not None and best.last_hidden is not None:
-            draw_network(best.brain, best.last_inputs, best.last_hidden, win)
+    if best.last_inputs is not None and best.last_hidden is not None:
+        draw_network(best.brain, best.last_inputs, best.last_hidden, win)
+
+    win.blit(plot_surface, (350, 10))  # Fitness chart
     pygame.display.update()
 
 def increase_difficulty(generation):
@@ -246,7 +286,7 @@ def increase_difficulty(generation):
         enemies.append(enemy1)
         # 25% chance to add a second enemy very close
         if uniform(0, 1) < 0.25:
-            x_pos += randint(40, 80)
+            x_pos += randint(40, 60)
             enemy2 = enemy(x_pos, 636, speed=speed_level)
             enemies.append(enemy2)
     for e in enemies:
@@ -290,27 +330,39 @@ while run:
     # Spawn new enemy during gameplay
     if enemy_spawn_timer >= next_enemy_spawn_frame:
         base_x = 1200
-        if uniform(0, 1) < 0.3:
-            new_enemy = FlyingEnemy(base_x, width=40, height=40, speed=speed_level)
-            is_flying = True
+        is_flying = uniform(0, 1) < 0.3
+        if is_flying:
+            new_enemy = FlyingEnemy(base_x, width=40, height=60, speed=speed_level)
         else:
             new_enemy = enemy(base_x, 636, speed=speed_level, width=40, height=60)
-            is_flying = False
         new_enemy.vel = speed_level
         enemies.append(new_enemy)
 
-        # 25% chance to spawn second close enemy only if there's enough space
+        # 25% chance to spawn second close enemy
         if uniform(0, 1) < 0.25:
-            spacing = randint(120, 200) if is_flying else randint(40, 80)
-            if uniform(0, 1) < 0.3:
+            # If both are same type, use normal spacing
+            if is_flying:
+                spacing = randint(200, 300)
                 second_enemy = FlyingEnemy(base_x + spacing, width=40, height=40, speed=speed_level)
             else:
+                spacing = randint(40, 60)
                 second_enemy = enemy(base_x + spacing, 636, speed=speed_level, width=40, height=60)
+
+            # But if types would be different, use large spacing
+            if uniform(0, 1) < 0.3:
+                # Opposite type second enemy
+                large_spacing = randint(300, 450)
+                if is_flying:
+                    second_enemy = enemy(base_x + large_spacing, 636, speed=speed_level, width=40, height=60)
+                else:
+                    second_enemy = FlyingEnemy(base_x + large_spacing, width=40, height=40, speed=speed_level)
+
             second_enemy.vel = speed_level
             enemies.append(second_enemy)
 
         enemy_spawn_timer = 0
-        next_enemy_spawn_frame = randint(60, 150)
+        next_enemy_spawn_frame = randint(80, 150)
+
     clock.tick(60)
     frame_counter += 1
     score_timer += 2
@@ -343,11 +395,18 @@ while run:
         best_agent = max(agents, key=lambda a: a.fitness)
         if best_agent.fitness > best_score:
             best_score = best_agent.fitness
+
         generation += 1
+        epoch_best_score = 0  # 🔧 Reset epoch best score
+
         agents = evolve_population(agents)
 
         for agent in agents:
             agent.player.reset()
+
+        enemies = []  # 🔧 Clear all enemies for the new epoch
+        enemy_spawn_timer = 0  # 🔧 Reset spawn timer (optional, but recommended)
+        next_enemy_spawn_frame = randint(90, 225)
 
 pygame.quit()
 

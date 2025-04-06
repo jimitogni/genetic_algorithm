@@ -294,6 +294,8 @@ def evolve_population(old_agents):
     avg_fitness_history.append(avg)
     top_genomes = [a.brain.genome for a in sorted_agents[:5]]
     save_best_genome(sorted_agents[0].brain.genome)
+    # Add elitism - keep best agent without mutation
+    # new_population = [DinoAgent(10, 550, 64, 64, genome=best.brain.genome)]
     draw_fitness_plot()
     return [DinoAgent(10 + i * 5, 550, 64, 64, mutate(choice(top_genomes))) for i in range(POPULATION_SIZE)]
 

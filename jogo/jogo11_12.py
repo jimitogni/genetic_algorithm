@@ -38,7 +38,7 @@ def load_best_genome():
     return None
 
 class enemy:
-    def __init__(self, x, y, width=40, height=60, end=300, speed=9):
+    def __init__(self, x, y, width=40, height=60, end=300, speed=5):
         self.active = True
         self.x = x
         self.y = y
@@ -70,7 +70,7 @@ class enemy:
 
 # Flying enemy class
 class FlyingEnemy(enemy):
-    def __init__(self, x, width=40, height=60, speed=9):
+    def __init__(self, x, width=40, height=60, speed=5):
         y = 510 # Adjusted from 480 → now right at head level
         
         #optional
@@ -179,7 +179,7 @@ class player:
         self.duck_img = pygame.image.load('boneco_duck.png')  # You’ll need to create or find a duck sprite
         self.vertical_velocity = 0
         self.jump_velocity = -15
-        self.gravity = 0.5
+        self.gravity = 0.3
         self.char_img = pygame.image.load('boneco.png')
         self.box = (self.x, self.y, 100, 150)
 
@@ -338,7 +338,7 @@ def redraw_game_window(agents, enemies, generation, fps, best_score, epoch_best_
     pygame.display.update()
 
 def increase_difficulty(generation):
-    speed = 9  # Start with base speed
+    speed = 5  # Start with base speed
     enemies = []
     x_pos = 1200
     for _ in range(randint(5, 7)):
@@ -371,14 +371,13 @@ def try_spawn_enemy(enemies, last_spawn_time, speed_level, current_time):
 # Game loop
 agents = [DinoAgent(10 + i * 5, 550, 64, 64) for i in range(POPULATION_SIZE)]
 generation = 1
-speed_level = 9
 enemies = []
 enemy_spawn_timer = 0
 frame_counter = 0
 next_enemy_spawn_frame = randint(90, 225)  # adjusted for 60 FPS
 run = True
 best_score = 0
-speed_level = 9
+speed_level = 5
 epoch_best_score = 0
 score_timer = 0
 last_spawn_time = 0  # For controlling enemy spawn timing
@@ -453,7 +452,7 @@ while run:
     redraw_game_window(agents, enemies, generation, fps, best_score, epoch_best_score)
 
     if all_dead:
-        speed_level = 9  # Reset speed at the beginning of each epoch
+        speed_level = 5  # Reset speed at the beginning of each epoch
         best_agent = max(agents, key=lambda a: a.fitness)
         if best_agent.fitness > best_score:
             best_score = best_agent.fitness

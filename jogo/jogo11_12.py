@@ -71,7 +71,11 @@ class enemy:
 # Flying enemy class
 class FlyingEnemy(enemy):
     def __init__(self, x, width=40, height=60, speed=9):
-        y = 480
+        y = 510 # Adjusted from 480 → now right at head level
+        
+        #optional
+        #y = randint(410, 430)  # Still within dangerous range for head
+
         end = 300
         super().__init__(x, y=y, width=width, height=height, end=end, speed=speed)
         self.color = (100, 100, 255)
@@ -171,6 +175,7 @@ class player:
         self.height = height
         self.vel = 5
         self.is_jump = False
+        self.is_ducking = False
         self.duck_img = pygame.image.load('boneco_duck.png')  # You’ll need to create or find a duck sprite
         self.vertical_velocity = 0
         self.jump_velocity = -15
@@ -228,21 +233,40 @@ def draw_network(nn, inputs, hidden, win):
     start_x = 1000
     start_y = 100
     spacing_y = 40
+
+    # Draw input neurons
     for i, val in enumerate(inputs):
         color = (255, 165, 0) if val > 0 else (100, 100, 100)
         pygame.draw.circle(win, color, (start_x, start_y + i * spacing_y), 10)
+
+    # Draw hidden neurons
     for j, val in enumerate(hidden):
         color = (255, 0, 0) if val > 0 else (0, 0, 0)
         pygame.draw.circle(win, color, (start_x + 60, start_y + j * spacing_y), 10)
+
+    # Draw connections from input to hidden
     for i in range(nn.input_size):
         for j in range(nn.hidden_size):
             color = (255, 0, 0) if nn.w1[i][j] > 0 else (0, 0, 255)
-            pygame.draw.line(win, color, (start_x, start_y + i * spacing_y), (start_x + 60, start_y + j * spacing_y), 1)
-    out_color = (0, 255, 0)
-    pygame.draw.circle(win, out_color, (start_x + 120, start_y + 2 * spacing_y), 10)
-    for j in range(nn.hidden_size):
-        color = (255, 0, 0) if nn.w2[j][0] > 0 else (0, 0, 255)
-        pygame.draw.line(win, color, (start_x + 60, start_y + j * spacing_y), (start_x + 120, start_y + 2 * spacing_y), 1)
+            pygame.draw.line(win, color,
+                             (start_x, start_y + i * spacing_y),
+                             (start_x + 60, start_y + j * spacing_y), 1)
+
+    # Output neurons: two (jump and duck)
+    output_labels = ["Jump", "Duck"]
+    output_spacing = 30  # spacing between output neurons
+
+    for k in range(2):  # nn.output_size is 2
+        y_offset = start_y + (k + 2) * spacing_y  # position output neurons lower
+        pygame.draw.circle(win, (0, 255, 0), (start_x + 120, y_offset), 10)
+        win.blit(font2.render(output_labels[k], True, (0, 0, 0)), (start_x + 135, y_offset - 10))
+
+        for j in range(nn.hidden_size):
+            color = (255, 0, 0) if nn.w2[j][k] > 0 else (0, 0, 255)
+            pygame.draw.line(win, color,
+                             (start_x + 60, start_y + j * spacing_y),
+                             (start_x + 120, y_offset), 1)
+
 
 def evolve_population(old_agents):
     sorted_agents = sorted(old_agents, key=lambda a: a.fitness, reverse=True)
